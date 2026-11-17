@@ -196,3 +196,61 @@ class ServicioRed:
 
     def habilidades_populares(self, limite: object = LIMITE_POR_DEFECTO) -> list[dict]:
         return self._repo.habilidades_populares(self._limite(limite))
+
+    # --- vistas compuestas (usadas por el frontend web) ---------------
+    def perfil(self, correo: str) -> dict:
+        """Datos del estudiante junto con sus amigos, materias y habilidades."""
+        estudiante = self._exigir_estudiante(correo)
+        clave = estudiante["correo"]
+        return {
+            "estudiante": estudiante,
+            "amigos": self._repo.listar_amigos(clave),
+            "materias": self._repo.materias_de(clave),
+            "habilidades": self._repo.habilidades_de(clave),
+        }
+
+    def listar_habilidades(self) -> list[str]:
+        """Nombres de todas las habilidades registradas (para listas desplegables)."""
+        return self._repo.listar_habilidades()
+
+    def grafo(self, incluir_materias: bool = False, incluir_habilidades: bool = False) -> dict:
+        """Nodos y aristas del grafo para dibujarlo.
+
+        Los identificadores llevan prefijo por tipo (``e:``, ``m:``, ``h:``) para
+        que un correo, un código y una habilidad nunca choquen entre sí.
+        """
+        nodos: list[dict] = []
+        aristas: list[dict] = []
+        for fila in self._repo.grafo_estudiantes():
+            e = fila["estudiante"]
+            nodos.append({
+                "id": f"e:{e['correo']}", "tipo": "Estudiante", "etiqueta": e["nombre"],
+                "datos": {**e, "amigos": fila["amigos"]},
+            })
+        for fila in self._repo.grafo_amistades():
+            aristas.append({
+                "origen": f"e:{fila['origen']}", "destino": f"e:{fila['destino']}",
+                "tipo": "AMIGO_DE", "datos": {"desde": fila["desde"]},
+            })
+        if incluir_materias:
+            for m in self._repo.listar_materias():
+                nodos.append({
+                    "id": f"m:{m['codigo']}", "tipo": "Materia", "etiqueta": m["codigo"], "datos": m,
+                })
+            for fila in self._repo.grafo_inscripciones():
+                aristas.append({
+                    "origen": f"e:{fila['origen']}", "destino": f"m:{fila['destino']}",
+                    "tipo": "CURSA", "datos": {"periodo": fila["periodo"]},
+                })
+        if incluir_habilidades:
+            for nombre in self._repo.listar_habilidades():
+                nodos.append({
+                    "id": f"h:{nombre}", "tipo": "Habilidad", "etiqueta": nombre,
+                    "datos": {"nombre": nombre},
+                })
+            for fila in self._repo.grafo_habilidades():
+                aristas.append({
+                    "origen": f"e:{fila['origen']}", "destino": f"h:{fila['destino']}",
+                    "tipo": "DOMINA", "datos": {"nivel": fila["nivel"]},
+                })
+        return {"nodos": nodos, "aristas": aristas}

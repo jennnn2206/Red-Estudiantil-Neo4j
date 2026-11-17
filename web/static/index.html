@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UniRed · Red de estudiantes</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23c2410c'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/static/css/estilos.css">
+</head>
+<body>
+  <a class="saltar" href="#contenido">Saltar al contenido</a>
+
+  <header class="cabecera">
+    <div class="marca">
+      <span class="marca-logo" aria-hidden="true"></span>
+      <div>
+        <h1>UniRed</h1>
+        <p class="marca-sub">Red de estudiantes sobre Neo4j AuraDB</p>
+      </div>
+    </div>
+    <nav aria-label="Secciones">
+      <ul class="pestanas" role="tablist">
+        <li><button type="button" role="tab" id="tab-estudiantes" aria-controls="sec-estudiantes" aria-selected="true">Estudiantes</button></li>
+        <li><button type="button" role="tab" id="tab-red" aria-controls="sec-red" aria-selected="false">Red</button></li>
+        <li><button type="button" role="tab" id="tab-relaciones" aria-controls="sec-relaciones" aria-selected="false">Relaciones</button></li>
+        <li><button type="button" role="tab" id="tab-consultas" aria-controls="sec-consultas" aria-selected="false">Consultas</button></li>
+      </ul>
+    </nav>
+    <p class="estado-conexion" id="estado-conexion" role="status">Conectando…</p>
+  </header>
+
+  <main id="contenido" tabindex="-1">
+
+    <!-- ===================== 1. Estudiantes ===================== -->
+    <section id="sec-estudiantes" class="seccion" role="tabpanel" aria-labelledby="tab-estudiantes">
+      <div class="rejilla-2">
+        <div class="tarjeta">
+          <div class="tarjeta-cabeza">
+            <h2>Estudiantes</h2>
+            <span class="contador" id="contador-estudiantes"></span>
+          </div>
+          <form id="form-busqueda" class="fila-busqueda" role="search">
+            <label for="busqueda" class="solo-lector">Buscar por nombre</label>
+            <input id="busqueda" type="search" placeholder="Buscar por nombre…" autocomplete="off">
+            <button type="submit" class="btn">Buscar</button>
+            <button type="button" class="btn btn-sec" id="btn-limpiar-busqueda">Ver todos</button>
+          </form>
+          <div id="tabla-estudiantes" class="zona-resultados" aria-live="polite"></div>
+        </div>
+
+        <div class="tarjeta">
+          <h2 id="titulo-form-estudiante">Nuevo estudiante</h2>
+          <form id="form-estudiante" novalidate>
+            <div class="campo">
+              <label for="est-correo">Correo</label>
+              <input id="est-correo" name="correo" type="email" required maxlength="254" placeholder="nombre@dominio.com">
+              <p class="ayuda" id="ayuda-correo">El correo identifica al estudiante y no se puede cambiar.</p>
+            </div>
+            <div class="campo">
+              <label for="est-nombre">Nombre</label>
+              <input id="est-nombre" name="nombre" type="text" required maxlength="100">
+            </div>
+            <div class="campo">
+              <label for="est-carrera">Carrera</label>
+              <input id="est-carrera" name="carrera" type="text" required maxlength="100" list="lista-carreras">
+              <datalist id="lista-carreras"></datalist>
+            </div>
+            <div class="campo">
+              <label for="est-semestre">Semestre (1 a 12)</label>
+              <input id="est-semestre" name="semestre" type="number" required min="1" max="12" step="1" inputmode="numeric">
+            </div>
+            <p class="error-form" id="error-estudiante" role="alert"></p>
+            <div class="acciones">
+              <button type="submit" class="btn" id="btn-guardar-estudiante">Crear estudiante</button>
+              <button type="button" class="btn btn-sec" id="btn-cancelar-edicion" hidden>Cancelar edición</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== 2. Red (grafo) ===================== -->
+    <section id="sec-red" class="seccion" role="tabpanel" aria-labelledby="tab-red" hidden>
+      <div class="tarjeta">
+        <div class="tarjeta-cabeza">
+          <h2>Red de amistades</h2>
+          <div class="opciones-grafo">
+            <label class="check"><input type="checkbox" id="chk-materias"> Materias</label>
+            <label class="check"><input type="checkbox" id="chk-habilidades"> Habilidades</label>
+            <button type="button" class="btn btn-sec" id="btn-recargar-grafo">Recargar</button>
+          </div>
+        </div>
+        <form id="form-camino-grafo" class="fila-camino">
+          <div class="campo">
+            <label for="grafo-origen">Origen</label>
+            <select id="grafo-origen" class="sel-estudiante" required></select>
+          </div>
+          <div class="campo">
+            <label for="grafo-destino">Destino</label>
+            <select id="grafo-destino" class="sel-estudiante" required></select>
+          </div>
+          <div class="acciones">
+            <button type="submit" class="btn">Resaltar camino más corto</button>
+            <button type="button" class="btn btn-sec" id="btn-quitar-resaltado">Quitar resaltado</button>
+          </div>
+        </form>
+        <p class="resultado-camino" id="resultado-camino" aria-live="polite"></p>
+        <div class="grafo-contenedor">
+          <div id="grafo" class="grafo" role="img" aria-label="Visualización del grafo de estudiantes y amistades"></div>
+          <aside class="panel-nodo" id="panel-nodo" aria-live="polite">
+            <h3>Detalle</h3>
+            <p class="vacio">Haz clic en un nodo para ver sus datos.</p>
+          </aside>
+        </div>
+        <ul class="leyenda" aria-label="Leyenda">
+          <li><span class="punto punto-est"></span> Estudiante</li>
+          <li><span class="punto punto-mat"></span> Materia</li>
+          <li><span class="punto punto-hab"></span> Habilidad</li>
+          <li><span class="linea linea-camino"></span> Camino más corto</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ===================== 3. Relaciones ===================== -->
+    <section id="sec-relaciones" class="seccion" role="tabpanel" aria-labelledby="tab-relaciones" hidden>
+      <div class="rejilla-3">
+        <div class="tarjeta">
+          <h2>Amistades</h2>
+          <form id="form-amistad">
+            <div class="campo">
+              <label for="am-a">Estudiante</label>
+              <select id="am-a" class="sel-estudiante" required></select>
+            </div>
+            <div class="campo">
+              <label for="am-b">Amigo</label>
+              <select id="am-b" class="sel-estudiante" required></select>
+            </div>
+            <div class="acciones">
+              <button type="submit" class="btn" data-accion="agregar">Agregar amistad</button>
+              <button type="button" class="btn btn-peligro" id="btn-quitar-amistad">Quitar amistad</button>
+            </div>
+          </form>
+          <h3 class="subtitulo">Amigos de <span id="am-nombre">…</span></h3>
+          <div id="lista-amigos" class="zona-resultados" aria-live="polite"></div>
+        </div>
+
+        <div class="tarjeta">
+          <h2>Materias</h2>
+          <form id="form-inscripcion">
+            <div class="campo">
+              <label for="ins-estudiante">Estudiante</label>
+              <select id="ins-estudiante" class="sel-estudiante" required></select>
+            </div>
+            <div class="campo">
+              <label for="ins-materia">Materia</label>
+              <select id="ins-materia" class="sel-materia" required></select>
+            </div>
+            <div class="campo">
+              <label for="ins-periodo">Periodo</label>
+              <select id="ins-periodo" required></select>
+            </div>
+            <div class="acciones">
+              <button type="submit" class="btn">Inscribir</button>
+              <button type="button" class="btn btn-peligro" id="btn-baja">Dar de baja</button>
+            </div>
+          </form>
+          <h3 class="subtitulo">Materias que cursa</h3>
+          <div id="lista-materias-est" class="zona-resultados" aria-live="polite"></div>
+
+          <details class="plegable">
+            <summary>Crear una materia nueva</summary>
+            <form id="form-materia">
+              <div class="campo">
+                <label for="mat-codigo">Código</label>
+                <input id="mat-codigo" type="text" required placeholder="BDA-401" pattern="[A-Za-z]{2,5}-[0-9]{2,4}">
+                <p class="ayuda">Letras, guion y números (ej. BDA-401).</p>
+              </div>
+              <div class="campo">
+                <label for="mat-nombre">Nombre</label>
+                <input id="mat-nombre" type="text" required maxlength="100">
+              </div>
+              <button type="submit" class="btn">Crear materia</button>
+            </form>
+          </details>
+        </div>
+
+        <div class="tarjeta">
+          <h2>Habilidades</h2>
+          <form id="form-habilidad">
+            <div class="campo">
+              <label for="hab-estudiante">Estudiante</label>
+              <select id="hab-estudiante" class="sel-estudiante" required></select>
+            </div>
+            <div class="campo">
+              <label for="hab-nombre">Habilidad</label>
+              <input id="hab-nombre" type="text" required maxlength="50" list="lista-habilidades" placeholder="python, cypher, diseño…">
+              <datalist id="lista-habilidades"></datalist>
+            </div>
+            <div class="campo">
+              <label for="hab-nivel">Nivel</label>
+              <select id="hab-nivel" required>
+                <option value="1">1 · Básico</option>
+                <option value="2">2</option>
+                <option value="3" selected>3 · Intermedio</option>
+                <option value="4">4</option>
+                <option value="5">5 · Experto</option>
+              </select>
+            </div>
+            <div class="acciones">
+              <button type="submit" class="btn">Agregar o actualizar</button>
+            </div>
+          </form>
+          <h3 class="subtitulo">Habilidades del estudiante</h3>
+          <div id="lista-habilidades-est" class="zona-resultados" aria-live="polite"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== 4. Consultas ===================== -->
+    <section id="sec-consultas" class="seccion" role="tabpanel" aria-labelledby="tab-consultas" hidden>
+      <div class="rejilla-consultas" id="paneles-consultas"></div>
+    </section>
+  </main>
+
+  <!-- Avisos (toasts) -->
+  <div class="avisos" id="avisos" aria-live="assertive" aria-atomic="false"></div>
+
+  <!-- Perfil -->
+  <dialog id="dlg-perfil" class="dialogo" aria-labelledby="perfil-titulo">
+    <div class="dialogo-cabeza">
+      <h2 id="perfil-titulo">Perfil</h2>
+      <button type="button" class="btn btn-sec btn-chico" data-cerrar>Cerrar</button>
+    </div>
+    <div id="perfil-cuerpo"></div>
+  </dialog>
+
+  <!-- Confirmación -->
+  <dialog id="dlg-confirmar" class="dialogo dialogo-chico" aria-labelledby="confirmar-titulo">
+    <h2 id="confirmar-titulo">¿Confirmar?</h2>
+    <p id="confirmar-texto"></p>
+    <div class="acciones">
+      <button type="button" class="btn btn-peligro" id="confirmar-si">Sí, eliminar</button>
+      <button type="button" class="btn btn-sec" id="confirmar-no">Cancelar</button>
+    </div>
+  </dialog>
+
+  <script src="/static/vendor/vis-network.min.js"></script>
+  <script type="module" src="/static/js/main.js"></script>
+</body>
+</html>

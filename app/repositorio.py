@@ -126,6 +126,22 @@ class RepositorioRed:
     def habilidades_populares(self, limite: int) -> list[dict]:
         return self._bd.leer(c.HABILIDADES_POPULARES, {"limite": limite})
 
+    # --- grafo para visualizar ---------------------------------------
+    def grafo_estudiantes(self) -> list[dict]:
+        return self._bd.leer(c.GRAFO_ESTUDIANTES)
+
+    def grafo_amistades(self) -> list[dict]:
+        return self._bd.leer(c.GRAFO_AMISTADES)
+
+    def grafo_inscripciones(self) -> list[dict]:
+        return self._bd.leer(c.GRAFO_INSCRIPCIONES)
+
+    def grafo_habilidades(self) -> list[dict]:
+        return self._bd.leer(c.GRAFO_HABILIDADES)
+
+    def listar_habilidades(self) -> list[str]:
+        return [f["habilidad"] for f in self._bd.leer(c.LISTAR_HABILIDADES)]
+
     # --- carga inicial -------------------------------------------------
     def sembrar(self, datos: dict[str, list[dict[str, Any]]]) -> None:
         """Inserta materias, estudiantes, amistades, inscripciones y habilidades."""

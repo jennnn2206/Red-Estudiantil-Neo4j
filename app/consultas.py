@@ -165,7 +165,8 @@ LIMIT $limite
 CAMINO_MAS_CORTO = """
 MATCH (a:Estudiante {correo: $origen}), (b:Estudiante {correo: $destino})
 MATCH ruta = shortestPath((a)-[:AMIGO_DE*..6]-(b))
-RETURN [n IN nodes(ruta) | n.nombre] AS camino, length(ruta) AS grados
+RETURN [n IN nodes(ruta) | n.nombre] AS camino,
+       [n IN nodes(ruta) | n.correo] AS correos, length(ruta) AS grados
 """
 
 # 3) Amigos en común de dos estudiantes.
@@ -224,6 +225,40 @@ MATCH (:Estudiante)-[d:DOMINA]->(h:Habilidad)
 RETURN h.nombre AS habilidad, count(*) AS estudiantes, round(avg(d.nivel), 1) AS nivel_promedio
 ORDER BY estudiantes DESC, habilidad
 LIMIT $limite
+"""
+
+# ----------------------------------------------------------------------
+# Grafo para visualizar (frontend web). Cada consulta devuelve una lista
+# plana; el servicio arma con ellas los nodos y las aristas.
+# ----------------------------------------------------------------------
+GRAFO_ESTUDIANTES = """
+MATCH (e:Estudiante)
+RETURN e {.correo, .nombre, .carrera, .semestre} AS estudiante,
+       COUNT { (e)-[:AMIGO_DE]-(:Estudiante) } AS amigos
+ORDER BY e.nombre
+"""
+
+# a.correo < b.correo: cada amistad aparece una sola vez aunque el patrón no tenga dirección.
+GRAFO_AMISTADES = """
+MATCH (a:Estudiante)-[r:AMIGO_DE]-(b:Estudiante)
+WHERE a.correo < b.correo
+RETURN a.correo AS origen, b.correo AS destino, r.desde AS desde
+"""
+
+GRAFO_INSCRIPCIONES = """
+MATCH (e:Estudiante)-[r:CURSA]->(m:Materia)
+RETURN e.correo AS origen, m.codigo AS destino, r.periodo AS periodo
+"""
+
+GRAFO_HABILIDADES = """
+MATCH (e:Estudiante)-[r:DOMINA]->(h:Habilidad)
+RETURN e.correo AS origen, h.nombre AS destino, r.nivel AS nivel
+"""
+
+LISTAR_HABILIDADES = """
+MATCH (h:Habilidad)
+RETURN h.nombre AS habilidad
+ORDER BY h.nombre
 """
 
 # ----------------------------------------------------------------------
