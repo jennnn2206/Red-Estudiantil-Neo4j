@@ -47,11 +47,25 @@ function convertir(grafo) {
   return { listaNodos, listaAristas };
 }
 
-let cargaEnCurso = null; // evita dos cargas simultáneas (y dos redes)
+let cargaEnCurso = null;   // evita dos cargas simultáneas (y dos redes)
+let recargarDespues = false; // hubo otra petición de carga mientras se cargaba
 
-/** Pide el grafo a la API y lo dibuja. */
+/**
+ * Pide el grafo a la API y lo dibuja. Si se pide de nuevo mientras carga
+ * (p. ej. al marcar dos casillas seguidas), se hace una carga más al terminar
+ * para que el dibujo refleje las opciones más recientes.
+ */
 export function cargarGrafo(boton) {
-  if (!cargaEnCurso) cargaEnCurso = cargarGrafoAhora(boton).finally(() => { cargaEnCurso = null; });
+  if (cargaEnCurso) {
+    recargarDespues = true;
+    return cargaEnCurso;
+  }
+  cargaEnCurso = (async () => {
+    do {
+      recargarDespues = false;
+      await cargarGrafoAhora(boton);
+    } while (recargarDespues);
+  })().finally(() => { cargaEnCurso = null; });
   return cargaEnCurso;
 }
 
