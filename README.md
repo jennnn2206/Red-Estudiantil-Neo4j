@@ -2,10 +2,11 @@
 
 **Materia:** Bases de Datos Avanzadas · **Profesor:** Fernando Martínez Chacón · Universidad Anáhuac Mayab
 **Autor:** Jennifer Briceño
+**Repositorio:** https://github.com/jennnn2206/Red-Estudiantil-Neo4j
 
-Aplicación en Python, con **interfaz web** y **versión de consola**, conectada a una base de datos de **grafos** (Neo4j AuraDB, servicio administrado en la nube). Permite registrar estudiantes, sus amistades, materias y habilidades, y responder preguntas que se resuelven recorriendo el grafo: sugerencia de amigos, camino más corto entre dos personas, vecindad y recomendación de equipo.
+Aplicación en Python, con **interfaz web** y versión de consola, conectada a una base de datos de grafos (Neo4j AuraDB, servicio administrado en la nube). Permite registrar estudiantes, sus amistades, materias y habilidades, y responder preguntas que se resuelven recorriendo el grafo: sugerencia de amigos, camino más corto entre dos personas, vecindad y recomendación de equipo.
 
-La justificación del paradigma, la arquitectura, el modelo y el catálogo de consultas están en `docs/diseno_unired.pdf`.
+La justificación del paradigma, la arquitectura, el modelo, el catálogo de consultas y el anexo de la interfaz web están en `docs/diseno_unired.pdf`.
 
 ## Requisitos
 
@@ -15,13 +16,13 @@ La justificación del paradigma, la arquitectura, el modelo y el catálogo de co
 
 ## 1. Crear la instancia en la nube (una sola vez)
 
-1. Entra a <https://console.neo4j.io> e inicia sesión (puedes usar tu cuenta de Google).
+1. Entra a https://console.neo4j.io e inicia sesión (puedes usar tu cuenta de Google).
 2. Pulsa **Create instance** y elige **AuraDB Free**. Ponle un nombre, por ejemplo `unired`.
 3. **Muy importante:** en la ventana que aparece pulsa **Download and continue** para bajar el archivo de credenciales (`Neo4j-xxxx-Created-....txt`). La contraseña solo se muestra esta vez.
 4. Espera uno o dos minutos hasta que el estado sea **Running**.
 5. Renombra el archivo descargado a `.env` y colócalo en la carpeta del proyecto (junto a `main.py`). Ya contiene `NEO4J_URI`, `NEO4J_USERNAME`, `NEO4J_PASSWORD` y `NEO4J_DATABASE`. Si prefieres, copia `.env.example` como `.env` y llena los datos a mano.
 
-> El archivo `.env` está en `.gitignore`: nunca lo subas a GitHub. Las credenciales no están escritas en el código.
+> El archivo `.env` está en `.gitignore`: **nunca lo subas a GitHub**. Las credenciales no están escritas en el código.
 
 ## 2. Instalar y ejecutar
 
@@ -37,23 +38,30 @@ python3 main.py                         # versión de consola (terminal)
 uvicorn app.web.api:app --reload        # versión web (frontend)
 ```
 
-Con el servidor web corriendo, abre **<http://127.0.0.1:8000>** en el navegador. La documentación interactiva de la API queda en <http://127.0.0.1:8000/docs>. Para detenerlo, `Ctrl+C`.
+Con el servidor web corriendo, abre **http://127.0.0.1:8000** en el navegador. La documentación interactiva de la API queda en http://127.0.0.1:8000/docs. Para detenerlo, `Ctrl+C`.
 
-- Si la instancia de AuraDB está pausada, el servidor arranca igual: la página muestra «Sin conexión con la base» y la API responde 503 con el motivo. Al reanudar la instancia se reconecta sola (no hace falta reiniciar uvicorn).
+Si la instancia de AuraDB está pausada, el servidor arranca igual: la página muestra «Sin conexión con la base» y la API responde 503 con el motivo. Al reanudar la instancia se reconecta sola (no hace falta reiniciar `uvicorn`).
 
-- `python3 -m scripts.seed --reiniciar` borra los Estudiantes, Materias y Habilidades de la base y vuelve a cargar los datos de ejemplo (pide confirmación).
-- `python3 -m unittest discover -v` corre las pruebas unitarias, incluidas las del API web (no necesitan internet).
-- `python3 -m scripts.probar_api` (con uvicorn corriendo en otra terminal) prueba **todos** los endpoints contra la base real con datos temporales, los borra al terminar y comprueba que los conteos de la base quedaron iguales.
+Otros comandos útiles:
+
+| Comando | Qué hace |
+|---|---|
+| `python3 -m scripts.seed --reiniciar` | Borra los Estudiantes, Materias y Habilidades de la base y vuelve a cargar los datos de ejemplo (pide confirmación). |
+| `python3 -m unittest discover -v` | Corre las pruebas unitarias (43), incluidas las del API web. No necesitan internet. |
+| `python3 -m scripts.probar_api` | Con `uvicorn` corriendo en otra terminal, prueba todos los endpoints contra la base real con datos temporales, los borra al terminar y comprueba que los conteos quedaron iguales. |
 
 ## 3. Qué hace la aplicación
+
+**Modelo:**
+`(:Estudiante)-[:AMIGO_DE]-(:Estudiante)`, `(:Estudiante)-[:CURSA {periodo}]->(:Materia)`, `(:Estudiante)-[:DOMINA {nivel}]->(:Habilidad)`.
+
+### Versión de consola
 
 | Menú | Opciones |
 |---|---|
 | Estudiantes | crear, listar, buscar por correo o nombre, modificar, eliminar (con sus relaciones), ver perfil completo |
 | Relaciones, materias y habilidades | agregar o eliminar amistad, ver amigos, crear y listar materias, inscribir o dar de baja, agregar o quitar habilidad |
-| Consultas del grafo | sugerir amigos (amigos de amigos), camino más corto, amigos en común, vecindad hasta N grados, compañeros de materia, sugerir equipo, más conectados, habilidades populares |
-
-Modelo: `(:Estudiante)-[:AMIGO_DE]-(:Estudiante)`, `(:Estudiante)-[:CURSA {periodo}]->(:Materia)`, `(:Estudiante)-[:DOMINA {nivel}]->(:Habilidad)`.
+| Consultas del grafo | sugerir amigos, camino más corto, amigos en común, vecindad hasta N grados, compañeros de materia, sugerir equipo, más conectados, habilidades populares |
 
 ### Interfaz web
 
@@ -63,6 +71,10 @@ Modelo: `(:Estudiante)-[:AMIGO_DE]-(:Estudiante)`, `(:Estudiante)-[:CURSA {perio
 | Red | grafo interactivo de estudiantes y amistades (opcionalmente materias y habilidades); al elegir origen y destino resalta el camino más corto; clic en un nodo o relación muestra sus datos |
 | Relaciones | agregar y quitar amistades, crear materias, inscribir y dar de baja, agregar o actualizar y quitar habilidades |
 | Consultas | un panel por cada una de las 8 consultas del grafo, con listas desplegables y resultados en tabla |
+
+La interfaz es responsiva, accesible (etiquetas en todos los campos) y escapa los datos que vienen de la base para evitar XSS. La librería que dibuja el grafo (vis-network) está incluida localmente, por lo que no depende de internet.
+
+Las capturas de la interfaz funcionando con la base real están en `docs/evidencia/frontend/`.
 
 ## 4. API REST
 
@@ -96,11 +108,25 @@ Todo bajo `/api`, en JSON. Los correos llevan `@` y puntos, por eso viajan como 
 | `GET /api/consultas/habilidades-populares?limite=` | habilidades más frecuentes |
 | `GET /api/grafo[?materias=true&habilidades=true]` | nodos y aristas para dibujar el grafo |
 
-Errores: siempre JSON `{"error": "...", "mensaje": "texto en español"}` con estos códigos: validación **422**, no encontrado **404**, duplicado **409**, sin conexión con la nube **503**, error de Neo4j **500**.
+**Errores:** siempre JSON `{"error": "...", "mensaje": "texto en español"}` con estos códigos:
 
-## 5. Estructura del proyecto
+| Situación | Código |
+|---|---|
+| validación | 422 |
+| no encontrado | 404 |
+| duplicado | 409 |
+| sin conexión con la nube | 503 |
+| error de Neo4j | 500 |
 
-```
+## 5. Pruebas realizadas
+
+- **43 pruebas unitarias** (26 de servicio, validaciones y consultas, y 17 del API con un servicio simulado).
+- **53 de 53 verificaciones en vivo** con `scripts/probar_api.py` contra la instancia real de AuraDB: CRUD, errores 404, 409 y 422, amistades, inscripciones, habilidades, las 8 consultas y el grafo. La base quedó con los mismos conteos que al inicio.
+- Recorrido de las cuatro secciones de la interfaz en el navegador, sin errores de consola.
+
+## 6. Estructura del proyecto
+
+```text
 main.py                     punto de entrada (consola)
 app/config.py               variables de entorno (rechaza localhost)
 app/conexion.py             driver oficial de Neo4j
@@ -120,10 +146,10 @@ scripts/verificar_conexion.py
 scripts/probar_api.py       prueba de todos los endpoints contra la base real
 pruebas/test_aplicacion.py  pruebas unitarias (servicio, validaciones, consultas)
 pruebas/test_api.py         pruebas del API con un servicio simulado
-docs/                       PDF de diseño, figuras y guía de defensa
+docs/                       PDF de diseño, figuras, evidencia y guía de defensa
 ```
 
-## 6. Ver el grafo en la consola de Aura
+## 7. Ver el grafo en la consola de Aura
 
 La pestaña **Red** de la interfaz web ya dibuja el grafo. Para verlo también desde Neo4j, en la consola de Aura abre **Query** (o **Explore**) y ejecuta:
 
@@ -131,14 +157,18 @@ La pestaña **Red** de la interfaz web ya dibuja el grafo. Para verlo también d
 MATCH p = (:Estudiante)-[:AMIGO_DE]-(:Estudiante) RETURN p LIMIT 50
 ```
 
-## 7. Problemas frecuentes
+## 8. Mantener la instancia activa
+
+AuraDB Free se **pausa tras 72 horas sin actividad** y se elimina si permanece pausada más de 30 días. Para evitarlo, haz cualquier consulta (por ejemplo `python3 -m scripts.verificar_conexion` o abrir la interfaz web) antes de ese plazo. Si ya se pausó, entra a https://console.neo4j.io, abre el menú **⋯** de la instancia y pulsa **Resume**; espera a que el estado sea **Running**. Conviene comprobarlo el día anterior a la entrega o al examen.
+
+## 9. Problemas frecuentes
 
 | Mensaje | Qué hacer |
 |---|---|
-| `Faltan variables de entorno` | Falta el archivo `.env` o está en otra carpeta. Debe estar junto a `main.py`. |
-| `rechazó el usuario o la contraseña` | Copia de nuevo los datos del archivo de credenciales. Si perdiste la contraseña, en Aura usa **Reset password**. |
-| `No se pudo conectar` | Revisa tu internet y que la instancia esté en **Running**. Las instancias gratuitas se **pausan por inactividad**: reanúdala en console.neo4j.io **antes del examen**. |
+| Faltan variables de entorno | Falta el archivo `.env` o está en otra carpeta. Debe estar junto a `main.py`. |
+| rechazó el usuario o la contraseña | Copia de nuevo los datos del archivo de credenciales. Si perdiste la contraseña, en Aura usa **Reset password**. |
+| No se pudo conectar | Revisa tu internet y que la instancia esté en **Running**. Las instancias gratuitas se pausan por inactividad: reanúdala en console.neo4j.io antes del examen. |
 | `CERTIFICATE_VERIFY_FAILED` (macOS con Python de python.org) | Ejecuta `Install Certificates.command` de la carpeta de Python en Aplicaciones. |
 | La página dice «Sin conexión con la base» | La instancia está pausada o sin internet. Reanúdala en console.neo4j.io; la web se reconecta sola en unos segundos. |
-| `Address already in use` al arrancar uvicorn | Ya hay otro servidor en el puerto 8000: ciérralo o usa `uvicorn app.web.api:app --port 8001`. |
-| `NEO4J_URI apunta a una máquina local` | La tarea exige base en la nube: usa la URI `neo4j+s://...databases.neo4j.io`. |
+| `Address already in use` al arrancar `uvicorn` | Ya hay otro servidor en el puerto 8000: ciérralo o usa `uvicorn app.web.api:app --port 8001`. |
+| `NEO4J_URI` apunta a una máquina local | La tarea exige base en la nube: usa la URI `neo4j+s://...databases.neo4j.io`. |
